@@ -37,6 +37,12 @@ const {
   ConflictError,
 } = require('../errors');
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(str) {
+  return typeof str === 'string' && UUID_REGEX.test(str);
+}
+
 // ═══════════════════════════════════════════════════════════
 // HINT SELECTION — records intent before submission
 // ═══════════════════════════════════════════════════════════
@@ -100,10 +106,11 @@ async function selectHint(participantId, servedProblemId, hintOptionId) {
  * @returns {Object} { cached, served?, result? }
  */
 async function beginSubmission(participantId, servedProblemId, clientRequestId) {
-  // FIX: Idempotency check — no transaction needed
-  if (clientRequestId) {
+  // FIX: Idempotency check — no transaction needed (only if valid UUID)
+  const sanitizedRequestId = isValidUUID(clientRequestId) ? clientRequestId : null;
+  if (sanitizedRequestId) {
     const existing = await db('submissions')
-      .where({ client_request_id: clientRequestId })
+      .where({ client_request_id: sanitizedRequestId })
       .first();
 
     if (existing) {
@@ -190,10 +197,11 @@ async function applyVerdict(participantId, servedProblemId, verdict, code, langu
       throw new ConflictError('State changed during judging — possibly recovered by cron');
     }
 
-    // Write submission (with idempotency key)
+    // Write submission (with idempotency key if valid UUID)
+    const sanitizedRequestId = isValidUUID(clientRequestId) ? clientRequestId : null;
     await trx('submissions').insert({
       served_problem_id: servedProblemId,
-      client_request_id: clientRequestId || null,
+      client_request_id: sanitizedRequestId,
       code,
       language,
       verdict: verdict.status,
