@@ -105,6 +105,19 @@ The core of Arcane is a **progressive hint ladder** where solving a problem unlo
 
 ---
 
+### 🎯 The 4-Way Decision Matrix
+
+| Hint Selected | Code Verdict | FSM State | Outcome & Next Action |
+| :--- | :---: | :---: | :--- |
+| **Genuine Hint** | **Accepted** ✅ | **`correct`** | **Advances to Next Stage!** Clears current stage, marks hint event `resolved`, and unlocks **$+1$ hint** for the subsequent problem. |
+| **Genuine Hint** | **Failed** ❌ | **`wrong_retry`** | **Protected from Looping.** Contestant keeps the **same problem** to debug syntax and edge cases. No penalty or stage reset. |
+| **Decoy Hint** | **Failed** ❌ | **`wrong_looped`** | **Decoy Trap Closes.** The chosen decoy is **permanently eliminated**, and the contestant is **looped to an alternate problem of the same problem type**. |
+| **None (Stage 1)** | **Accepted** ✅ | **`correct`** | **Advances to Stage 2.** Stage 1 is a cold solve (0 hints). Solving it unlocks **Hint 1** (1 Genuine Hint) for Problem 2. |
+
+> 🔒 **Pre-Submission Rule**: From Stage 2 onwards, contestants **must select a hint card** in the UI before submitting code. Submitting without a hint choice is blocked by the client to enforce strategic algorithmic commitment.
+
+---
+
 ## 🏗️ System Architecture
 
 ```mermaid

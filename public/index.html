@@ -1397,6 +1397,12 @@
         return;
       }
 
+      // If this stage provides hints, contestant must choose one before submitting
+      if (currentSession.hints && currentSession.hints.length > 0 && !selectedHintId) {
+        alert('Please select a hint from the Arcane Hint Chain before submitting your solution.');
+        return;
+      }
+
       submitBtn.disabled = true;
       submitBtn.innerText = 'Judging in Piston...';
       verdictText.innerText = 'Evaluating Test Cases...';
