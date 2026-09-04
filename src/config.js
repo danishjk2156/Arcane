@@ -15,8 +15,9 @@ module.exports = {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
   },
 
-  // Piston public API — no config needed (https://emkc.org/api/v2/piston)
-  // If you self-host Piston later, add PISTON_URL here
+  piston: {
+    url: process.env.PISTON_URL || 'https://emkc.org/api/v2/piston',
+  },
 
   jwt: {
     secret: process.env.JWT_SECRET || 'change-this-to-a-real-secret',

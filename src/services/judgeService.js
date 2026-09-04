@@ -13,8 +13,9 @@
  */
 
 const axios = require('axios');
+const config = require('../config');
 
-const PISTON_URL = 'https://emkc.org/api/v2/piston';
+const PISTON_URL = config.piston.url;
 
 // ─── Hardcoded language map for Piston ────────────────────
 // Piston uses language name + version, not numeric IDs

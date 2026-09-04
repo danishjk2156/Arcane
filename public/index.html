@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arcane — Hint-Chain Coding Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --bg-surface: #0e121d;
+      --bg-surface-elevated: #151b2b;
+      --bg-surface-glass: rgba(18, 24, 38, 0.75);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(99, 102, 241, 0.4);
+
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.25);
+      --accent-cyan: #06b6d4;
+      --accent-cyan-glow: rgba(6, 182, 212, 0.2);
+      --accent-violet: #8b5cf6;
+      --accent-rose: #f43f5e;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.06) 0%, transparent 60%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-dark);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Top Navbar */
+    header {
+      background: var(--bg-surface-glass);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      padding: 0.75rem 1.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+
+    .brand-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: white;
+    }
+
+    .brand-text h1 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      background: linear-gradient(to right, #fff, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.1;
+    }
+
+    .brand-text span {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent-cyan);
+      font-weight: 600;
+      display: block;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34d399;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 12px #10b981; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      outline: none;
+      text-decoration: none;
+    }
+
+    .btn-subtle {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    .btn-subtle:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent-violet));
+      color: white;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--primary-glow);
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--bg-surface-elevated);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      border: 1px solid var(--border-subtle);
+      font-size: 0.82rem;
+    }
+
+    .user-avatar {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.7rem;
+      color: white;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 1.25rem 1.75rem 2rem 1.75rem;
+      max-width: 1750px;
+      margin: 0 auto;
+      width: 100%;
+      gap: 1.25rem;
+    }
+
+    /* Stage Progression Tracker */
+    .stage-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 0.75rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stage-bar::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--accent-cyan));
+    }
+
+    .stages-list {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .stage-node {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+
+    .stage-node.active {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .stage-node.completed {
+      color: var(--accent-emerald);
+    }
+
+    .stage-indicator {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--bg-surface-elevated);
+      border: 2px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .stage-node.active .stage-indicator {
+      border-color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan-glow);
+    }
+
+    .stage-node.completed .stage-indicator {
+      border-color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+    }
+
+    /* Arena Grid */
+    .arena-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      flex: 1;
+      min-height: 650px;
+    }
+
+    @media (max-width: 1024px) {
+      .arena-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Pane: Problem & Hint Chain */
+    .pane {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .pane-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .pane-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .pane-content {
+      padding: 1.25rem;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .tag-diff-1 { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .tag-diff-2 { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .tag-diff-3 { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+    .meta-chip {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Problem Description */
+    .problem-desc {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+    }
+
+    /* Sample Cases */
+    .sample-cases {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .sample-case {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.82rem;
+    }
+
+    .sample-header {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin-bottom: 0.4rem;
+    }
+
+    .sample-code {
+      font-family: var(--font-mono);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      color: #38bdf8;
+      margin-bottom: 0.4rem;
+      white-space: pre-wrap;
+    }
+
+    /* Arcane Hint-Chain Panel */
+    .hint-chain-card {
+      background: linear-gradient(145deg, rgba(99, 102, 241, 0.08), rgba(6, 182, 212, 0.04));
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 12px;
+      padding: 1.1rem;
+      position: relative;
+    }
+
+    .hint-chain-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #a5b4fc;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .hint-chain-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-bottom: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .hints-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .hint-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9px;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .hint-option:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      background: var(--bg-surface-elevated);
+    }
+
+    .hint-option.selected {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.12);
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+
+    .hint-option.eliminated {
+      opacity: 0.4;
+      text-decoration: line-through;
+      pointer-events: none;
+      background: rgba(244, 63, 94, 0.05);
+      border-color: rgba(244, 63, 94, 0.2);
+    }
+
+    .hint-radio {
+      margin-top: 0.2rem;
+      accent-color: var(--primary);
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+    }
+
+    .hint-text {
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      line-height: 1.45;
+      flex: 1;
+    }
+
+    /* Right Pane: Code Editor & Execution Console */
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .select-lang {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      font-weight: 500;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .select-lang:focus {
+      border-color: var(--primary);
+    }
+
+    .editor-wrapper {
+      position: relative;
+      flex: 1;
+      display: flex;
+      min-height: 380px;
+      background: #090c15;
+    }
+
+    .editor-textarea {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #f8fafc;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.55;
+      padding: 1rem 1.25rem;
+      resize: none;
+      tab-size: 4;
+      white-space: pre;
+      overflow-wrap: normal;
+      overflow-x: auto;
+    }
+
+    /* Action bar */
+    .submit-bar {
+      padding: 0.85rem 1.25rem;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-surface-elevated);
+    }
+
+    .rate-limit-msg {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    .btn-submit {
+      padding: 0.65rem 1.6rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      box-shadow: 0 4px 18px rgba(16, 185, 129, 0.25);
+      border-radius: 9px;
+      color: #032014;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
+      filter: brightness(1.1);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Terminal Console */
+    .console-pane {
+      background: #05070c;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      min-height: 190px;
+      max-height: 240px;
+    }
+
+    .console-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .console-body {
+      padding: 0.85rem 1.1rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      overflow-y: auto;
+      flex: 1;
+      color: #cbd5e1;
+    }
+
+    .verdict-banner {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.9rem;
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .verdict-banner.accepted {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .verdict-banner.wrong {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      color: #fb7185;
+    }
+
+    .verdict-banner.loop {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .console-error {
+      background: rgba(244, 63, 94, 0.08);
+      border-left: 3px solid #f43f5e;
+      padding: 0.6rem 0.85rem;
+      border-radius: 0 6px 6px 0;
+      color: #fca5a5;
+      white-space: pre-wrap;
+      font-size: 0.78rem;
+    }
+
+    /* Modal System */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      padding: 2rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 40px var(--primary-glow);
+      transform: translateY(15px);
+      transition: all 0.25s ease;
+    }
+
+    .modal-backdrop.open .modal-card {
+      transform: translateY(0);
+    }
+
+    .modal-wide {
+      max-width: 780px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .btn-close {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .btn-close:hover {
+      color: white;
+    }
+
+    .form-group {
+      margin-bottom: 1.1rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: white;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    .auth-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 1.5rem;
+      gap: 1.5rem;
+    }
+
+    .auth-tab {
+      background: none;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      padding-bottom: 0.6rem;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .auth-tab.active {
+      color: var(--primary);
+    }
+
+    .auth-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    /* Leaderboard Table */
+    .table-container {
+      max-height: 450px;
+      overflow-y: auto;
+    }
+
+    .lead-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+
+    .lead-table th {
+      padding: 0.75rem 1rem;
+      background: var(--bg-surface-elevated);
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      position: sticky;
+      top: 0;
+    }
+
+    .lead-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: #e2e8f0;
+    }
+
+    .lead-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .rank-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+
+    .rank-1 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+    .rank-2 { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid #94a3b8; }
+    .rank-3 { background: rgba(180, 83, 9, 0.2); color: #d97706; border: 1px solid #b45309; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>ARCANE</h1>
+        <span>HINT-CHAIN CODING ARENA</span>
+      </div>
+    </a>
+
+    <div class="nav-actions">
+      <div class="status-badge" id="wsStatus">
+        <span class="pulse-dot"></span>
+        <span id="wsStatusText">Live Arena Connected</span>
+      </div>
+
+      <button class="btn btn-subtle" onclick="openLeaderboard()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Leaderboard
+      </button>
+
+      <div id="authSlot">
+        <button class="btn btn-primary" onclick="openAuthModal()">Login / Register</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Arena -->
+  <main>
+    <!-- Stage Progression Bar -->
+    <div class="stage-bar">
+      <div class="stages-list" id="stageList">
+        <div class="stage-node active">
+          <div class="stage-indicator">1</div>
+          <span>Stage 1: Arrays & Two Pointers</span>
+        </div>
+        <div class="stage-node">
+          <div class="stage-indicator">2</div>
+          <span>Stage 2: Hash Maps & Strings</span>
+        </div>
+        <div class="stage-node">
+          <div class="stage-indicator">3</div>
+          <span>Stage 3: Dynamic Programming</span>
+        </div>
+      </div>
+      <div class="meta-chip" id="sessionStatusChip">Active Problem</div>
+    </div>
+
+    <!-- Arena 2-Column Grid -->
+    <div class="arena-grid">
+      <!-- Left: Problem & Hints -->
+      <div class="pane">
+        <div class="pane-header">
+          <div class="pane-title">
+            <span id="problemTitle">Loading Challenge...</span>
+            <span class="tag tag-diff-1" id="problemDiff">Easy</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <span class="meta-chip" id="timeLimitChip">⏱️ 2000ms</span>
+            <span class="meta-chip" id="memLimitChip">💾 128MB</span>
+          </div>
+        </div>
+
+        <div class="pane-content">
+          <!-- Statement -->
+          <div class="problem-desc" id="problemDescription">
+            Please login or register to start your coding session.
+          </div>
+
+          <!-- Sample Test Cases -->
+          <div>
+            <h4 style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.5rem;">Sample Test Cases</h4>
+            <div class="sample-cases" id="sampleCasesContainer"></div>
+          </div>
+
+          <!-- Arcane Hint-Chain Panel -->
+          <div class="hint-chain-card">
+            <div class="hint-chain-title">
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              Arcane Hint Chain
+            </div>
+            <div class="hint-chain-sub">
+              Select one strategy before submitting. If your code fails, choosing a genuine hint allows a retry, whereas choosing a decoy triggers an architectural loop to an alternate challenge!
+            </div>
+            <div class="hints-list" id="hintsListContainer">
+              <div style="font-size: 0.85rem; color: var(--text-dim);">No active hints loaded.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Code Arena -->
+      <div class="pane">
+        <div class="editor-toolbar">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-dim);">Language:</label>
+            <select class="select-lang" id="langSelector" onchange="onLanguageChange()">
+              <option value="python">Python (3.10.0)</option>
+              <option value="cpp">C++ (GCC 10.2.0)</option>
+              <option value="c">C (GCC 10.2.0)</option>
+              <option value="java">Java (OpenJDK 15.0.2)</option>
+            </select>
+          </div>
+
+          <button class="btn btn-subtle" style="font-size: 0.75rem; padding: 0.35rem 0.7rem;" onclick="resetStarterCode()">
+            Reset Template
+          </button>
+        </div>
+
+        <div class="editor-wrapper">
+          <textarea 
+            class="editor-textarea" 
+            id="codeEditor" 
+            spellcheck="false" 
+            placeholder="Write your solution here..."></textarea>
+        </div>
+
+        <div class="submit-bar">
+          <div class="rate-limit-msg" id="rateLimitMsg">
+            ⚡ 1 submission per 3 seconds per contestant
+          </div>
+
+          <button class="btn btn-submit" id="submitBtn" onclick="submitSolution()">
+            Submit Solution
+          </button>
+        </div>
+
+        <!-- Terminal Console -->
+        <div class="console-pane">
+          <div class="console-header">
+            <span>Execution Terminal</span>
+            <span id="verdictStatusText" style="color: var(--text-dim);">Idle</span>
+          </div>
+          <div class="console-body" id="consoleBody">
+            <div style="color: var(--text-dim); font-size: 0.82rem;">Ready for submission. Select a hint from the chain and hit 'Submit Solution'.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Auth Modal -->
+  <div class="modal-backdrop" id="authModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="authModalTitle">Enter the Arena</div>
+        <button class="btn-close" onclick="closeAuthModal()">&times;</button>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Login</button>
+        <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Register</button>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuth(event)">
+        <div class="form-group" id="groupDisplayName" style="display: none;">
+          <label class="form-label">Display Name / Handle</label>
+          <input type="text" class="form-input" id="authDisplayName" placeholder="e.g. CodeSorcerer">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-input" id="authEmail" required placeholder="name@domain.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="authPassword" required placeholder="••••••••">
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;" id="authSubmitBtn">
+            Continue
+          </button>
+          <button type="button" class="btn btn-subtle" onclick="fillQuickDemo()">
+            Auto-fill Guest
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Leaderboard Modal -->
+  <div class="modal-backdrop" id="leaderboardModal">
+    <div class="modal-card modal-wide">
+      <div class="modal-header">
+        <div class="modal-title">Live Leaderboard</div>
+        <button class="btn-close" onclick="closeLeaderboard()">&times;</button>
+      </div>
+
+      <div class="table-container">
+        <table class="lead-table">
+          <thead>
+            <tr>
+              <th style="width: 70px;">Rank</th>
+              <th>Participant</th>
+              <th>Levels Conquered</th>
+              <th>Current Stage</th>
+              <th>Total Time</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardTbody">
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 2rem;">Loading leaderboard...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─── Universal Origin Resolver ───────────────────────────
+    const API_BASE = window.location.origin.startsWith('http') ? window.location.origin : 'http://localhost:3000';
+
+    // ─── State Management ────────────────────────────────────
+    let authToken = localStorage.getItem('arcane_token') || null;
+    let currentUser = JSON.parse(localStorage.getItem('arcane_user') || 'null');
+    let currentSession = null;
+    let currentProblem = null;
+    let selectedHintId = null;
+    let authMode = 'login';
+    let socket = null;
+    let cooldownTimer = null;
+
+    // ─── Startup ─────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', async () => {
+      initSocket();
+      initEditorKeybindings();
+      renderAuthBar();
+
+      if (authToken) {
+        await loadCurrentSession();
+      } else {
+        openAuthModal();
+      }
+    });
+
+    // ─── Socket.IO ───────────────────────────────────────────
+    function initSocket() {
+      try {
+        socket = io(API_BASE);
+        socket.on('connect', () => {
+          document.getElementById('wsStatusText').innerText = 'Live Arena Connected';
+          const dot = document.querySelector('.pulse-dot');
+          if (dot) dot.style.background = '#10b981';
+        });
+
+        socket.on('disconnect', () => {
+          document.getElementById('wsStatusText').innerText = 'Disconnected';
+          const dot = document.querySelector('.pulse-dot');
+          if (dot) dot.style.background = '#f43f5e';
+        });
+
+        socket.on('leaderboard:update', () => {
+          if (document.getElementById('leaderboardModal').classList.contains('open')) {
+            loadLeaderboardData();
+          }
+        });
+      } catch (err) {
+        console.warn('[WS] Socket init error:', err);
+      }
+    }
+
+    // ─── Auth Handlers ───────────────────────────────────────
+    function renderAuthBar() {
+      const slot = document.getElementById('authSlot');
+      if (currentUser && authToken) {
+        slot.innerHTML = `
+          <div class="user-pill">
+            <div class="user-avatar">${(currentUser.displayName || 'U')[0].toUpperCase()}</div>
+            <span>${escapeHtml(currentUser.displayName)}</span>
+            <button class="btn btn-subtle" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; margin-left: 0.3rem;" onclick="logout()">Logout</button>
+          </div>
+        `;
+      } else {
+        slot.innerHTML = `<button class="btn btn-primary" onclick="openAuthModal()">Login / Register</button>`;
+      }
+    }
+
+    function switchAuthTab(mode) {
+      authMode = mode;
+      document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+      document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
+      document.getElementById('groupDisplayName').style.display = mode === 'register' ? 'block' : 'none';
+      document.getElementById('authSubmitBtn').innerText = mode === 'login' ? 'Login' : 'Create Account';
+      document.getElementById('authModalTitle').innerText = mode === 'login' ? 'Welcome Back, Sorcerer' : 'Register for Arcane';
+    }
+
+    function fillQuickDemo() {
+      const rand = Math.floor(Math.random() * 8999 + 1000);
+      switchAuthTab('register');
+      document.getElementById('authDisplayName').value = `Sorcerer_${rand}`;
+      document.getElementById('authEmail').value = `sorcerer_${rand}@arcane.club`;
+      document.getElementById('authPassword').value = 'password123';
+    }
+
+    async function handleAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value.trim();
+      const displayName = document.getElementById('authDisplayName')?.value.trim();
+
+      const endpoint = authMode === 'login' ? `${API_BASE}/api/auth/login` : `${API_BASE}/api/auth/register`;
+      const payload = authMode === 'login' ? { email, password } : { email, password, displayName };
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Authentication failed');
+
+        authToken = data.token;
+        currentUser = data.participant;
+        localStorage.setItem('arcane_token', authToken);
+        localStorage.setItem('arcane_user', JSON.stringify(currentUser));
+
+        closeAuthModal();
+        renderAuthBar();
+        await loadCurrentSession();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function logout() {
+      authToken = null;
+      currentUser = null;
+      localStorage.removeItem('arcane_token');
+      localStorage.removeItem('arcane_user');
+      renderAuthBar();
+      location.reload();
+    }
+
+    function openAuthModal() {
+      document.getElementById('authModal').classList.add('open');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.remove('open');
+    }
+
+    // ─── Session & Problem Loading ───────────────────────────
+    async function loadCurrentSession() {
+      if (!authToken) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/session/current`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (res.status === 401) {
+          logout();
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data.finished) {
+          renderFinishedScreen();
+          return;
+        }
+
+        currentSession = data;
+        currentProblem = data.problem;
+        selectedHintId = data.selectedHintId;
+
+        renderProblemView();
+      } catch (err) {
+        console.error('Session load failed:', err);
+      }
+    }
+
+    function renderProblemView() {
+      if (!currentProblem) return;
+
+      document.getElementById('problemTitle').innerText = currentProblem.title;
+      document.getElementById('problemDescription').innerText = currentProblem.description;
+      
+      const diffTag = document.getElementById('problemDiff');
+      diffTag.className = `tag tag-diff-${currentProblem.difficulty || 1}`;
+      diffTag.innerText = currentProblem.difficulty === 1 ? 'Stage I' : currentProblem.difficulty === 2 ? 'Stage II' : 'Stage III';
+
+      document.getElementById('timeLimitChip').innerText = `⏱️ ${currentProblem.timeLimitMs || 2000}ms`;
+      document.getElementById('memLimitChip').innerText = `💾 ${currentProblem.memoryLimitMb || 128}MB`;
+
+      // Render Sample Test Cases
+      const sampleContainer = document.getElementById('sampleCasesContainer');
+      const testCases = currentProblem.testCases || [];
+      if (!testCases.length) {
+        sampleContainer.innerHTML = `<div style="color: var(--text-dim); font-size: 0.8rem;">Standard problem constraints apply.</div>`;
+      } else {
+        sampleContainer.innerHTML = testCases.map((tc, idx) => `
+          <div class="sample-case">
+            <div class="sample-header">Sample Case #${idx + 1}</div>
+            <div style="font-size: 0.72rem; color: var(--text-dim);">INPUT:</div>
+            <div class="sample-code">${escapeHtml(tc.input || '(empty)')}</div>
+            <div style="font-size: 0.72rem; color: var(--text-dim);">EXPECTED OUTPUT:</div>
+            <div class="sample-code">${escapeHtml(tc.expectedOutput || '')}</div>
+          </div>
+        `).join('');
+      }
+
+      // Render Hints
+      renderHints(currentSession.hints || []);
+
+      // Load starter code
+      onLanguageChange();
+    }
+
+    function renderHints(hints) {
+      const container = document.getElementById('hintsListContainer');
+      if (!hints.length) {
+        container.innerHTML = `<div style="font-size: 0.85rem; color: var(--text-dim);">No hint chain available for this stage.</div>`;
+        return;
+      }
+
+      container.innerHTML = hints.map((hint, idx) => {
+        const isSelected = selectedHintId === hint.id;
+        const isEliminated = hint.eliminated;
+
+        return `
+          <div class="hint-option ${isSelected ? 'selected' : ''} ${isEliminated ? 'eliminated' : ''}" onclick="selectHintOption(${hint.id})">
+            <input type="radio" class="hint-radio" name="arcane_hint" value="${hint.id}" ${isSelected ? 'checked' : ''} ${isEliminated ? 'disabled' : ''}>
+            <div class="hint-text">
+              <strong style="color: var(--accent-cyan); margin-right: 0.35rem;">Hint #${idx + 1}:</strong>
+              ${escapeHtml(hint.text)}
+              ${isEliminated ? '<span style="color: #f43f5e; font-size: 0.7rem; font-weight: 700; margin-left: 0.5rem;">[ELIMINATED DECOY]</span>' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function selectHintOption(hintId) {
+      if (!currentSession || !currentSession.servedProblemId) return;
+
+      selectedHintId = hintId;
+      renderHints(currentSession.hints || []);
+
+      try {
+        await fetch(`${API_BASE}/api/session/select-hint`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            servedProblemId: currentSession.servedProblemId,
+            hintOptionId: hintId
+          })
+        });
+      } catch (err) {
+        console.warn('Hint selection failed to sync:', err);
+      }
+    }
+
+    // ─── Code Editor ─────────────────────────────────────────
+    function onLanguageChange() {
+      if (!currentProblem) return;
+      const lang = document.getElementById('langSelector').value;
+      const editor = document.getElementById('codeEditor');
+
+      let starterCodeMap = {};
+      if (typeof currentProblem.starterCode === 'string') {
+        try { starterCodeMap = JSON.parse(currentProblem.starterCode); } catch (e) {}
+      } else if (typeof currentProblem.starterCode === 'object' && currentProblem.starterCode !== null) {
+        starterCodeMap = currentProblem.starterCode;
+      }
+
+      if (starterCodeMap[lang]) {
+        editor.value = starterCodeMap[lang];
+      } else {
+        editor.value = getDefaultTemplate(lang);
+      }
+    }
+
+    function resetStarterCode() {
+      if (confirm('Reset code to original starter template?')) {
+        onLanguageChange();
+      }
+    }
+
+    function getDefaultTemplate(lang) {
+      switch (lang) {
+        case 'python':
+          return `import sys\n\ndef solve():\n    lines = sys.stdin.read().split()\n    if not lines:\n        return\n    # Implement your logic\n\nif __name__ == "__main__":\n    solve()\n`;
+        case 'cpp':
+          return `#include <iostream>\nusing namespace std;\n\nint main() {\n    // Implement your logic\n    return 0;\n}\n`;
+        case 'c':
+          return `#include <stdio.h>\n\nint main() {\n    // Implement your logic\n    return 0;\n}\n`;
+        case 'java':
+          return `import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // Implement your logic\n    }\n}\n`;
+        default:
+          return '';
+      }
+    }
+
+    function initEditorKeybindings() {
+      const editor = document.getElementById('codeEditor');
+      editor.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const start = editor.selectionStart;
+          const end = editor.selectionEnd;
+          editor.value = editor.value.substring(0, start) + '    ' + editor.value.substring(end);
+          editor.selectionStart = editor.selectionEnd = start + 4;
+        }
+      });
+    }
+
+    // ─── Solution Submission ─────────────────────────────────
+    async function submitSolution() {
+      if (!authToken) {
+        openAuthModal();
+        return;
+      }
+      if (!currentSession || !currentSession.servedProblemId) {
+        alert('No active challenge found.');
+        return;
+      }
+
+      const code = document.getElementById('codeEditor').value.trim();
+      const language = document.getElementById('langSelector').value;
+      const submitBtn = document.getElementById('submitBtn');
+      const consoleBody = document.getElementById('consoleBody');
+      const verdictText = document.getElementById('verdictStatusText');
+
+      if (!code) {
+        alert('Please write code before submitting.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Judging in Piston...';
+      verdictText.innerText = 'Evaluating Test Cases...';
+      verdictText.style.color = '#38bdf8';
+
+      consoleBody.innerHTML = `
+        <div style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+          <span class="pulse-dot"></span>
+          Running code across parallel test cases...
+        </div>
+      `;
+
+      try {
+        const clientRequestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+        const res = await fetch(`${API_BASE}/api/session/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            servedProblemId: currentSession.servedProblemId,
+            code,
+            language,
+            clientRequestId
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Submission failed');
+
+        handleVerdictResponse(data);
+      } catch (err) {
+        verdictText.innerText = 'Error';
+        verdictText.style.color = '#f43f5e';
+        consoleBody.innerHTML = `<div class="console-error">${escapeHtml(err.message)}</div>`;
+      } finally {
+        startCooldown(3);
+      }
+    }
+
+    function startCooldown(seconds) {
+      const btn = document.getElementById('submitBtn');
+      let remaining = seconds;
+      btn.disabled = true;
+      btn.innerText = `Cooldown (${remaining}s)`;
+
+      clearInterval(cooldownTimer);
+      cooldownTimer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(cooldownTimer);
+          btn.disabled = false;
+          btn.innerText = 'Submit Solution';
+        } else {
+          btn.innerText = `Cooldown (${remaining}s)`;
+        }
+      }, 1000);
+    }
+
+    function handleVerdictResponse(data) {
+      const consoleBody = document.getElementById('consoleBody');
+      const verdictText = document.getElementById('verdictStatusText');
+
+      if (data.result === 'correct') {
+        verdictText.innerText = 'Accepted';
+        verdictText.style.color = '#10b981';
+
+        consoleBody.innerHTML = `
+          <div class="verdict-banner accepted">
+            🎉 All Test Cases Passed! You solved this challenge!
+          </div>
+          <div style="color: #94a3b8; font-size: 0.85rem;">
+            Advancing to next stage...
+          </div>
+        `;
+
+        setTimeout(() => {
+          if (data.session) {
+            currentSession = data.session;
+            currentProblem = data.session.problem;
+            selectedHintId = data.session.selectedHintId;
+            renderProblemView();
+          } else {
+            loadCurrentSession();
+          }
+        }, 1500);
+      } 
+      else if (data.result === 'wrong_retry') {
+        verdictText.innerText = `Failed (${data.verdict || 'Wrong Answer'})`;
+        verdictText.style.color = '#f43f5e';
+
+        let extraOutput = '';
+        if (data.compileOutput) {
+          extraOutput = `<div class="console-error">COMPILE ERROR:\n${escapeHtml(data.compileOutput)}</div>`;
+        } else if (data.stderr) {
+          extraOutput = `<div class="console-error">RUNTIME ERROR:\n${escapeHtml(data.stderr)}</div>`;
+        }
+
+        consoleBody.innerHTML = `
+          <div class="verdict-banner wrong">
+            ❌ Verdict: ${data.verdict || 'Wrong Answer'}
+          </div>
+          <div style="margin-bottom: 0.5rem; font-size: 0.82rem; color: #cbd5e1;">
+            Failed on test case ${data.failedTestCase || 1} of ${data.totalTestCases || 'all'}.
+            ${data.selectedHintId ? '<br><span style="color: #34d399;">Your genuine hint selection protected you from looping! Fix your code and retry.</span>' : ''}
+          </div>
+          ${extraOutput}
+        `;
+      } 
+      else if (data.result === 'wrong_looped') {
+        verdictText.innerText = 'Decoy Loop Triggered';
+        verdictText.style.color = '#fbbf24';
+
+        consoleBody.innerHTML = `
+          <div class="verdict-banner loop">
+            🔄 Decoy Loop Triggered!
+          </div>
+          <div style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.5;">
+            The hint you selected was a decoy! The platform eliminated that decoy hint from your set and served an alternative challenge in this stage.
+          </div>
+        `;
+
+        setTimeout(() => {
+          if (data.session) {
+            currentSession = data.session;
+            currentProblem = data.session.problem;
+            selectedHintId = data.session.selectedHintId;
+            renderProblemView();
+          } else {
+            loadCurrentSession();
+          }
+        }, 2200);
+      }
+      else if (data.result === 'finished' || data.finished) {
+        renderFinishedScreen();
+      }
+    }
+
+    function renderFinishedScreen() {
+      document.getElementById('problemTitle').innerText = '🏆 Arena Conquered!';
+      document.getElementById('problemDescription').innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+          <h2 style="font-family: var(--font-display); font-size: 1.8rem; color: #34d399; margin-bottom: 1rem;">All Stages Completed!</h2>
+          <p style="color: #cbd5e1; font-size: 1rem; max-width: 500px; margin: 0 auto 1.5rem auto;">
+            Congratulations, Sorcerer! You navigated all hint-chains and successfully solved every problem type. Check your final rank on the leaderboard.
+          </p>
+          <button class="btn btn-primary" onclick="openLeaderboard()">View Final Standing</button>
+        </div>
+      `;
+      document.getElementById('sampleCasesContainer').innerHTML = '';
+      document.getElementById('hintsListContainer').innerHTML = '';
+      document.getElementById('codeEditor').disabled = true;
+      document.getElementById('submitBtn').disabled = true;
+    }
+
+    // ─── Leaderboard ─────────────────────────────────────────
+    async function openLeaderboard() {
+      document.getElementById('leaderboardModal').classList.add('open');
+      await loadLeaderboardData();
+    }
+
+    function closeLeaderboard() {
+      document.getElementById('leaderboardModal').classList.remove('open');
+    }
+
+    async function loadLeaderboardData() {
+      const tbody = document.getElementById('leaderboardTbody');
+      try {
+        const res = await fetch(`${API_BASE}/api/leaderboard`);
+        const data = await res.json();
+        const list = data.leaderboard || [];
+
+        if (!list.length) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 2rem;">No submissions yet. Be the first to solve!</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = list.map((entry, index) => {
+          const rank = index + 1;
+          const rankBadge = rank <= 3 ? `<span class="rank-pill rank-${rank}">${rank}</span>` : `<span style="font-weight: 600; color: var(--text-dim);">${rank}</span>`;
+
+          return `
+            <tr>
+              <td>${rankBadge}</td>
+              <td style="font-weight: 600; color: white;">${escapeHtml(entry.displayName)}</td>
+              <td><span style="color: #34d399; font-weight: 700;">${entry.levelsCompleted}</span> stages</td>
+              <td style="color: var(--accent-cyan);">${escapeHtml(entry.currentLevel || 'Stage 1')}</td>
+              <td style="color: var(--text-muted); font-family: var(--font-mono); font-size: 0.8rem;">${formatInterval(entry.totalTime)}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #f43f5e; padding: 2rem;">Failed to load leaderboard.</td></tr>`;
+      }
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatInterval(interval) {
+      if (!interval) return '—';
+      if (typeof interval === 'string') return interval;
+      if (typeof interval === 'object') {
+        const mins = interval.minutes || 0;
+        const secs = Math.floor(interval.seconds || 0);
+        return `${mins}m ${secs}s`;
+      }
+      return String(interval);
+    }
+  </script>
+</body>
+</html>
