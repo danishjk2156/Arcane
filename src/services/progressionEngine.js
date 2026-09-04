@@ -345,18 +345,23 @@ async function submitAttempt(participantId, servedProblemId, code, language, cli
 
 /**
  * Computes how many hint options to generate for a stage.
- * FIX: Growing hints — hint_count = stage_number (or DB override).
+ *
+ * Formula:
+ *   - Problem 1 (Stage 1): 0 hints (cold solve)
+ *   - Problem 2 (Stage 2): 1 hint (1 correct hint, 0 decoys)
+ *   - Problem 3 (Stage 3): 2 hints (1 correct hint, 1 decoy)
+ *   - Every problem solved: +1 hint (Stage N = N - 1 hints)
+ *   - In every problem: exactly 1 hint is genuinely correct.
  *
  * @param {Object} problemType - Row from problem_types
  * @returns {number} Total hint options (1 correct + N-1 decoys)
  */
 function getHintCount(problemType) {
-  // Stage 1 is bootstrap (P1 solved → reveal 1 hint for P2)
   const stageNumber = problemType.sequence_order;
-  if (stageNumber <= 1) return 1;
+  if (stageNumber <= 1) return 0;
 
-  // DB override takes priority; otherwise hint_count = stage_number
-  return problemType.hints_per_stage ?? stageNumber;
+  // DB override takes priority; otherwise hint_count = stage_number - 1
+  return problemType.hints_per_stage ?? (stageNumber - 1);
 }
 
 /**

@@ -38,6 +38,17 @@ services:
       timeout: 5s
       retries: 5
 
+  # ─── Piston (Code Execution Engine — C, C++, Java, Python) ─
+  piston:
+    image: ghcr.io/engineer-man/piston
+    container_name: arcane-piston
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "2000:2000"
+    tmpfs:
+      - /tmp:exec
+
 volumes:
   pgdata:
   redisdata:

@@ -6,13 +6,13 @@
 
 ## 📖 Table of Contents
 - [What is Arcane?](#-what-is-arcane)
-- [How It Works: The Hint-Chain Mechanic](#-how-it-works-the-hint-chain-mechanic)
+- [How It Works: The Hint-Chain Architecture](#-how-it-works-the-hint-chain-architecture)
 - [System Architecture](#-system-architecture)
 - [Finite State Machine (FSM) Lifecycle](#-finite-state-machine-fsm-lifecycle)
 - [Key Architectural Design Decisions](#-key-architectural-design-decisions)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
+- [Setup & Installation Guide](#-setup--installation-guide)
 - [API Reference](#-api-reference)
 - [Environment Variables](#-environment-variables)
 
@@ -32,49 +32,76 @@ Participants select a hint card to commit their strategic intent before submitti
 
 ---
 
-## ⚙️ How It Works: The Hint-Chain Mechanic
+## ⚙️ How It Works: The Hint-Chain Architecture
+
+The core of Arcane is a **progressive hint ladder** where solving a problem unlocks $+1$ hint for the next challenge:
 
 ```
-                           Participant Submits Code
-                                      │
-                                      ▼
-                        ┌───────────────────────────┐
-                        │   All Test Cases Pass?    │
-                        └─────────────┬─────────────┘
-                                      │
-                       Yes ───────────┴─────────── No
-                        │                          │
-                        ▼                          ▼
-            ┌──────────────────────┐    ┌──────────────────────┐
-            │       ACCEPTED       │    │  Which Hint Chosen?  │
-            │ Advance to Next Stage│    └──────────┬───────────┘
-            └──────────────────────┘               │
-                                   Genuine ────────┴──────── Decoy
-                                      │                        │
-                                      ▼                        ▼
-                          ┌──────────────────────┐ ┌──────────────────────┐
-                          │     WRONG RETRY      │ │     DECOY LOOP       │
-                          │ • Keep same problem  │ │ • Eliminate decoy    │
-                          │ • Fix code & retry   │ │ • Loop to alternate  │
-                          │ • No stage reset     │ │   problem in stage   │
-                          └──────────────────────┘ └──────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│  STAGE 1: Arrays & Two Pointers                                        │
+│  Problem 1 (Cold Solve — 0 Hints Available)                            │
+│  Contestant must solve with raw algorithmic intuition.                 │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                         SOLVED (All Tests Pass)
+                         Awards +1 Hint for Stage 2
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│  STAGE 2: Hash Maps & Strings                                          │
+│  Problem 2 (Receives 1 Hint: 1 Genuine)                                │
+│  Contestant uses Hint 1 to guide their solution.                       │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                         SOLVED (All Tests Pass)
+                         Awards +1 Hint for Stage 3 (Total = 2 Hints)
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│  STAGE 3: Dynamic Programming & Recursion                              │
+│  Problem 3 (Receives 2 Hints: 1 Genuine + 1 Decoy)                     │
+│  Contestant must discern which hint is real before submitting!          │
+└──────────────┬──────────────────────────────────────────┬──────────────┘
+               │                                          │
+    Contestant Selects                               Contestant Selects
+       GENUINE HINT                                      DECOY HINT
+    & Code Fails Test Cases                          & Code Fails Test Cases
+               │                                          │
+               ▼                                          ▼
+┌──────────────────────────────┐        ┌────────────────────────────────┐
+│      WRONG RETRY BRANCH      │        │       DECOY LOOP BRANCH        │
+│  • Genuine hint protects user│        │  • Decoy hint is ELIMINATED!   │
+│  • Stays on the SAME problem │        │  • Loops to an ALTERNATE       │
+│  • Debug syntax/logic & retry│        │    problem of the SAME stage   │
+│  • No stage rollback         │        │  • Remaining hints available   │
+└──────────────┬───────────────┘        └────────────────┬───────────────┘
+               │                                         │
+               └────────────────────┬────────────────────┘
+                                    │
+                         SOLVED (All Tests Pass)
+                         Awards +1 Hint for Stage 4 (Total = 3 Hints)
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│  STAGE 4: Advanced Graph Algorithms (Receives 3 Hints: 1 Real + 2 Decoys)
+│  ... Continues scaling: Stage K receives (K - 1) Hints                 │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **If Code Passes (`accepted`)**:
-   - The participant clears the stage.
-   - The stage's hint event is marked `resolved`.
-   - The platform serves the first challenge of the next stage.
+---
 
-2. **If Code Fails + Genuine Hint Selected (`wrong_retry`)**:
-   - The platform recognizes that the participant selected the correct architectural approach.
-   - **Protection Granted**: The participant is NOT looped back or penalized with a new problem.
-   - They remain on the same problem to debug syntax, edge cases, or implementation mistakes.
+### 📈 The +1 Hint Growth Formula
 
-3. **If Code Fails + Decoy Hint Selected (`wrong_looped`)**:
-   - The participant fell for algorithmic misdirection.
-   - **The Trap Closes**: The chosen decoy hint is permanently flagged as `eliminated = true`.
-   - The current problem attempt is closed as a loop failure.
-   - The participant is **looped** to an *alternate problem* belonging to the same stage, but now with one fewer decoy to mislead them!
+| Stage / Problem | Trigger Condition | Total Hints | Hint Composition | Result on Wrong Attempt |
+| :--- | :--- | :---: | :--- | :--- |
+| **Stage 1 (Problem 1)** | Contest start | **0 Hints** | Cold solve — baseline test | Retry same problem |
+| **Stage 2 (Problem 2)** | Solved Problem 1 | **1 Hint** | **1 Genuine Hint** (0 Decoys) | Retry same problem |
+| **Stage 3 (Problem 3)** | Solved Problem 2 | **2 Hints** | **1 Genuine Hint + 1 Decoy Hint** | • Decoy: Loop to alternate Stage 3 problem<br>• Genuine: Retry same problem |
+| **Stage 4 (Problem 4)** | Solved Problem 3 | **3 Hints** | **1 Genuine Hint + 2 Decoy Hints** | • Decoy: Loop to alternate Stage 4 problem<br>• Genuine: Retry same problem |
+| **Stage $K$ (Problem $K$)** | Solved Problem $K-1$ | **$K - 1$ Hints** | **1 Genuine Hint + $(K - 2)$ Decoy Hints** | • Decoy: Loop to alternate Stage $K$ problem<br>• Genuine: Retry same problem |
+
+> **The Golden Architectural Invariants**:
+> 1. **+1 Hint Progression**: Each completed stage awards **$+1$ hint** for the subsequent stage ($0 \to 1 \to 2 \to 3 \dots$).
+> 2. **Single True Insight**: In every stage with hints, **exactly 1 hint is genuinely optimal**, and all other $N-1$ options are deceptive decoys.
+> 3. **The Decoy Loop**: Choosing a decoy and submitting failing code permanently eliminates that decoy and forces a **loop to an alternate problem of the same problem type**.
+> 4. **Genuine Hint Shield**: Choosing the genuine hint shields the contestant from looping on failure; they stay on the same problem to fix bugs.
 
 ---
 
@@ -82,69 +109,74 @@ Participants select a hint card to commit their strategic intent before submitti
 
 ```mermaid
 graph TB
-    subgraph Client ["Client Layer"]
-        SPA["Browser Single-Page App\n(Vanilla JS + CSS + HTML5)"]
-        WSClient["Socket.io Client\n(Live Leaderboard)"]
+    subgraph Client ["Contestant Interface"]
+        SPA["Browser Single-Page App\n(Vanilla JS + CSS3 + HTML5)"]
+        WSClient["Socket.io Client\n(Live Leaderboard Broadcast)"]
     end
 
-    subgraph Server ["Express.js API Layer"]
-        AuthMid["JWT Auth Middleware"]
+    subgraph Gateway ["API Gateway & Middleware"]
+        AuthMid["JWT Auth Guard\n(/api/session/*)"]
         RateLimiter["Submit Rate Limiter\n(1 submit / 3s per contestant)"]
-        DTOLayer["DTO Serialization Layer\n(Strips is_correct)"]
-        
-        subgraph Services ["Core Services"]
-            ProgEngine["Progression Engine (FSM)"]
-            JudgeSvc["Judge Service (Piston Client)"]
-            LeaderboardSvc["Leaderboard Service"]
-            StaleCron["Stale Recovery Cron (30s)"]
-        end
+        DTOLayer["DTO Sanitization Layer\n(Strips is_correct from hints)"]
     end
 
-    subgraph Execution ["Sandboxed Code Runner"]
-        Piston["Piston Execution Engine\n(C, C++, Python, Java)\nParallel Test Execution"]
+    subgraph CoreEngine ["Progression Engine (FSM)"]
+        Phase1["Phase 1: State Transition\n(Lock < 10ms → outcome: 'judging')"]
+        Phase2["Phase 2: Parallel Code Judging\n(Non-blocking, 0 DB locks)"]
+        Phase3["Phase 3: Outcome & Hint Chain FSM\n• Correct → +1 Hint & Advance\n• Wrong + Decoy → Eliminate & Loop Same Type\n• Wrong + Genuine → Retry Same Problem"]
     end
 
-    subgraph Persistence ["Persistence Layer"]
-        Postgres[("PostgreSQL 16\n• Participants\n• Served Problems\n• Hint Events\n• Submissions")]
-        Redis[("Redis 7 (AOF)\n• Caching & State")]
+    subgraph Sandbox ["Execution Sandbox"]
+        Piston["Piston Docker Engine (Port 2000)\nParallel Test Execution (Promise.all)"]
     end
 
-    SPA -->|HTTP REST| RateLimiter
+    subgraph Database ["Data & Persistence Layer"]
+        Postgres[("PostgreSQL 16\n• problem_types (hints_per_stage)\n• problems & test_cases\n• decoy_hints\n• hint_events & hint_options\n• served_problems & submissions")]
+        Redis[("Redis 7 (AOF)\n• Session state & queue persistence")]
+        Cron["Stale Recovery Cron (30s)\nResets 'judging' >60s to 'pending'"]
+    end
+
+    SPA -->|HTTP POST /submit| RateLimiter
     RateLimiter --> AuthMid
     AuthMid --> DTOLayer
-    DTOLayer --> ProgEngine
-    WSClient <-->|WebSockets| Server
+    DTOLayer --> Phase1
 
-    ProgEngine -->|Phase 1 & 3: Atomic Lock <10ms| Postgres
-    ProgEngine -->|Phase 2: Non-blocking Execution| JudgeSvc
-    JudgeSvc -->|HTTP POST /execute (Parallel)| Piston
+    Phase1 -->|Atomic UPDATE| Postgres
+    Phase1 --> Phase2
+    Phase2 -->|HTTP POST /execute| Piston
+    Phase2 --> Phase3
 
-    LeaderboardSvc --> Postgres
-    LeaderboardSvc -.->|Emit leaderboard:update| WSClient
-    StaleCron -->|Reset 'judging' >60s| Postgres
+    Phase3 -->|Atomic Verdict Write| Postgres
+    Phase3 -.->|On Stage Clear| WSClient
+
+    Cron -->|Sweep stuck states| Postgres
+    WSClient <-->|WebSockets| Gateway
 ```
 
 ---
 
 ## 🔄 Finite State Machine (FSM) Lifecycle
 
-Arcane models problem attempts using an explicit state machine on `served_problems.outcome`:
+Arcane models attempt progression strictly through `served_problems.outcome`:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> pending: Problem Served
-    
-    pending --> judging: Submit Attempt (Phase 1 Lock)
-    
+    [*] --> pending: Problem Served (Stage 1: 0 Hints)
+
+    pending --> judging: Contestant Submits Code (Phase 1 Lock)
+
     judging --> pending: Stale Recovery (>60s stuck)
     judging --> judging: Duplicate Request (Idempotency Cache)
 
-    judging --> accepted: All Tests Pass
-    judging --> pending: Wrong + Genuine Hint (Retry Allowed)
-    judging --> looped: Wrong + Decoy Hint (Trap Triggered)
+    judging --> accepted: All Test Cases Pass
+    accepted --> pending: Next Stage Served (+1 Hint Awarded)
+    accepted --> finished: All Problem Types Completed
 
-    accepted --> [*]: Next Stage Served
-    looped --> pending: Alternate Problem Served (Decoy Eliminated)
+    judging --> wrong_retry: Failed + Genuine Hint Selected
+    wrong_retry --> pending: Retry Same Problem (Shielded from Loop)
+
+    judging --> wrong_looped: Failed + Decoy Hint Selected
+    wrong_looped --> pending: Decoy Eliminated + Alternate Problem of Same Type Served
 ```
 
 ---
@@ -231,77 +263,169 @@ arcane/
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Setup & Installation Guide
 
-### 1. Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for PostgreSQL, Redis, and Piston)
+Follow these steps to set up and run Arcane locally on your machine or competition server.
 
 ---
 
-### 2. Start Services via Docker
-Start PostgreSQL and Redis:
+### Step 1: Prerequisites
+Ensure you have the following installed:
+- **Node.js** (v18.0.0 or higher) — [Download Node.js](https://nodejs.org/)
+- **Git** — [Download Git](https://git-scm.com/)
+- **Docker & Docker Compose** (Recommended) — [Download Docker Desktop](https://www.docker.com/products/docker-desktop/)
+  *(Alternatively: Local installations of PostgreSQL 16 and Redis 7)*
+
+---
+
+### Step 2: Clone the Repository & Install Dependencies
+```bash
+# Clone repository
+git clone https://github.com/danishjk2156/Arcane.git
+
+# Enter project directory
+cd Arcane
+
+# Install Node.js dependencies
+npm install
+```
+
+---
+
+### Step 3: Configure Environment Variables
+Copy the sample environment file to create your active `.env`:
+```bash
+cp .env.example .env
+```
+
+Ensure your `.env` matches your setup (default values work out-of-the-box with Docker):
+```env
+# Server Port & Environment
+PORT=3000
+NODE_ENV=development
+
+# PostgreSQL Database Connection
+DATABASE_URL=postgresql://postgres:danish%402005@localhost:5432/arcane_db
+
+# Redis Connection
+REDIS_URL=redis://localhost:6379
+
+# Sandboxed Code Execution Engine (Local Piston)
+PISTON_URL=http://localhost:2000
+
+# Authentication & Rate Limiting
+JWT_SECRET=arcane-jwt-super-secret-key-2026
+JWT_EXPIRY=24h
+SUBMIT_RATE_LIMIT_WINDOW_MS=3000
+SUBMIT_RATE_LIMIT_MAX=1
+
+# Stale Judging Recovery (seconds)
+STALE_JUDGING_TIMEOUT_S=60
+```
+
+---
+
+### Step 4: Launch Infrastructure Services
+
+#### Option A: Using Docker Compose (Recommended)
+Start PostgreSQL, Redis, and the Piston Code Runner simultaneously with a single command:
 ```bash
 docker compose up -d
 ```
 
-*(Optional for offline/high-concurrency competitions)* Start local Piston:
+Verify that all three containers are healthy and running:
 ```bash
-docker run -d -p 2000:2000 --name arcane-piston ghcr.io/engineer-man/piston
+docker compose ps
 ```
+You should see:
+- `arcane-postgres` on port `5432`
+- `arcane-redis` on port `6379`
+- `arcane-piston` on port `2000`
+
+#### Option B: Standalone / Local Installation
+If running PostgreSQL and Redis natively on your host machine:
+1. Ensure the PostgreSQL service is active on port `5432`.
+2. Ensure Redis is active on port `6379`.
+3. Start local Piston runner:
+   ```bash
+   docker run -d -p 2000:2000 --name arcane-piston ghcr.io/engineer-man/piston
+   ```
 
 ---
 
-### 3. Configure Environment Variables
-Copy [.env.example](file:///.env.example) to `.env`:
+### Step 5: Initialize Database Schema & Seed Problems
+
+Run the database setup lifecycle in order:
+
 ```bash
-cp .env.example .env
-```
-Ensure your database credentials match your environment:
-```env
-PORT=3000
-DATABASE_URL=postgresql://postgres:password@localhost:5432/arcane_db
-REDIS_URL=redis://localhost:6379
-PISTON_URL=http://localhost:2000
-JWT_SECRET=your-super-secret-key
-```
-
----
-
-### 4. Install Dependencies & Seed Database
-```bash
-# Install node packages
-npm install
-
-# Create the arcane_db database
+# 1. Create the 'arcane_db' database in PostgreSQL
 npm run init-db
 
-# Run Knex schema migrations
+# 2. Run Knex schema migrations (creates all relational tables & indexes)
 npm run migrate
 
-# Seed initial problem sets, stages, and decoy hints
+# 3. Seed stages, problems, genuine hints, decoys, and test cases
 npm run seed
 ```
 
+> **Database Reset (Pro Tip)**: If you ever need to reset contest state and wipe all submissions/stages:
+> ```bash
+> npm run migrate:rollback
+> npm run migrate
+> npm run seed
+> ```
+
 ---
 
-### 5. Start the Application
-- **Development Mode** (auto-restart with Nodemon):
+### Step 6: Start the Arcane Application
+
+- **Development Mode** (auto-restarts on code changes via Nodemon):
   ```bash
   npm run dev
   ```
+
 - **Production Mode**:
   ```bash
   npm start
   ```
 
+When started, your terminal will confirm:
+```
+🏛️  Arcane server running on port 3000
+   Environment: development
+   Judge:       http://localhost:2000
+[StaleRecovery] Cron started — recovering entries stuck >60s in 'judging' state
+```
+
 ---
 
-### 6. Open the Arena
-Navigate to [http://localhost:3000](http://localhost:3000) in your browser.
-- Click **"Auto-fill Guest"** on the login modal to create an instant contestant.
-- Select a hint option from the **Arcane Hint Chain**.
-- Write your solution in Python, C++, C, or Java, and hit **Submit Solution**!
+### Step 7: Access the Frontend Arena
+
+Open your web browser and navigate to:
+👉 **[http://localhost:3000](http://localhost:3000)**
+
+1. **Sign In**: On the login modal, click **"Auto-fill Guest"** to instantly spawn a test contestant, then click **Continue**.
+2. **Solve Problem 1**: Problem 1 (Arrays & Two Pointers) is a **Cold Solve** (0 hints). Write your solution and click **Submit Solution**.
+3. **Earn Hint 1**: Passing Problem 1 unlocks Stage 2 and gives you **Hint 1** to solve Problem 2!
+4. **Earn Hint 2**: Passing Problem 2 unlocks Stage 3 and gives you **2 Hints** (1 genuine + 1 decoy).
+5. **Experience the Decoy Loop**: Select a decoy hint and submit failing code to see the decoy eliminated and an alternate problem served!
+6. **Live Leaderboard**: Click the **Leaderboard** button in the navbar to see live rankings updating over WebSockets!
+
+---
+
+### Step 8: Verification & Health Diagnostics
+
+You can verify the backend is running correctly using curl or your browser:
+
+- **System Health Check**: [http://localhost:3000/api/health](http://localhost:3000/api/health)
+  ```json
+  {"status":"ok","timestamp":"2026-09-05T02:00:00.000Z"}
+  ```
+
+- **Supported Languages**: [http://localhost:3000/api/languages](http://localhost:3000/api/languages)
+  ```json
+  {"languages":[{"key":"c","label":"C (GCC 10.2.0)"},{"key":"cpp","label":"C++ (GCC 10.2.0)"},{"key":"java","label":"Java (OpenJDK 15.0.2)"},{"key":"python","label":"Python (3.10.0)"}]}
+  ```
 
 ---
 

@@ -9,20 +9,22 @@ exports.seed = async function (knex) {
   await knex('hint_options').del();
   await knex('hint_events').del();
   await knex('decoy_hints').del();
+  await knex('participants').update({ current_problem_id: null });
   await knex('problems').del();
   await knex('problem_types').del();
 
   // 1. Problem Types (Sequence Order defines stages)
+  // Rule: P1 cold solve (0 hints) -> solve P1 gives 1 hint for P2 -> solve P2 gives 2 hints for P3 (+1 hint each)
   const [t1] = await knex('problem_types')
-    .insert({ name: 'Arrays & Two Pointers', sequence_order: 1 })
+    .insert({ name: 'Arrays & Two Pointers', sequence_order: 1, hints_per_stage: 0 })
     .returning('*');
 
   const [t2] = await knex('problem_types')
-    .insert({ name: 'Hash Maps & Strings', sequence_order: 2, hints_per_stage: 2 })
+    .insert({ name: 'Hash Maps & Strings', sequence_order: 2, hints_per_stage: 1 })
     .returning('*');
 
   const [t3] = await knex('problem_types')
-    .insert({ name: 'Dynamic Programming & Recursion', sequence_order: 3, hints_per_stage: 3 })
+    .insert({ name: 'Dynamic Programming & Recursion', sequence_order: 3, hints_per_stage: 2 })
     .returning('*');
 
   // 2. Decoy Hints
